@@ -24,6 +24,7 @@ import type { Habit } from "@/components/habits-app";
 interface HabitCardProps {
   habit: Habit;
   onComplete: () => void;
+  icon?: React.ReactNode;
 }
 
 const getIconComponent = (iconName: string) => {
@@ -42,7 +43,7 @@ const getIconComponent = (iconName: string) => {
   return iconMap[iconName] || <Heart className="w-6 h-6" />;
 };
 
-export function HabitCard({ habit, onComplete }: HabitCardProps) {
+export function HabitCard({ habit, onComplete, icon }: HabitCardProps) {
   return (
     <Card
       className={cn(
@@ -58,8 +59,7 @@ export function HabitCard({ habit, onComplete }: HabitCardProps) {
               habit.color
             )}
           >
-            {getIconComponent(habit.iconName)}{" "}
-            {/* Using icon mapping function */}
+            {icon || getIconComponent(habit.iconName)}
           </div>
           <div>
             <h3
