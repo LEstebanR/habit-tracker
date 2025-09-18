@@ -1,9 +1,79 @@
-import Image from "next/image";
+"use client";
+import { SessionProvider } from "next-auth/react";
+
+import { AuthForm } from "@/components/auth-form";
+import { useState, useEffect } from "react";
+import { HabitsApp } from "@/components/habits-app";
+import { signInWithGoogle, signOutAction } from "./actions";
+import { useSession, signOut } from "next-auth/react";
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+}
+
+function HomeContent() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (session?.user) {
+      // Safely check that all required fields are present before setting user
+      if (session.user.id && session.user.email && session.user.name) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+        });
+      }
+    } else if (status === "unauthenticated") {
+      setUser(null);
+    }
+  }, [session, status]);
+
+  const handleLogout = () => {
+    signOut();
+    setIsDemoMode(false);
+  };
+
+  const handleDemoMode = () => {
+    setUser({
+      id: "demo",
+      email: "demo@example.com",
+      name: "Demo User",
+    });
+    setIsDemoMode(true);
+  };
+
+  // Mostrar loading mientras NextAuth está verificando la sesión
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <AuthForm onDemo={handleDemoMode} signInWithGoogle={signInWithGoogle} />
+    );
+  }
+
+  return (
+    <HabitsApp user={user} onLogout={handleLogout} isDemoMode={isDemoMode} />
+  );
+}
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <p className="text-4xl font-bold">Work in progress...</p>
-    </div>
+    <SessionProvider>
+      <HomeContent />
+    </SessionProvider>
   );
 }
