@@ -64,12 +64,12 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
             <User className="w-8 h-8 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            {isLogin ? "Iniciar Sesión" : "Crear Cuenta"}
+            {isLogin ? "Sign in" : "Sign up"}
           </CardTitle>
           <CardDescription>
             {isLogin
-              ? "Ingresa a tu cuenta para continuar con tus hábitos"
-              : "Crea una cuenta para comenzar tu journey de hábitos"}
+              ? "Enter your account to continue with your habits"
+              : "Create an account to start your journey of habits"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,7 +80,7 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="text"
-                    placeholder="Tu nombre"
+                    placeholder="Your name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10"
@@ -107,7 +107,7 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Tu contraseña"
+                  placeholder="Your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
@@ -133,11 +133,7 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
             )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading
-                ? "Cargando..."
-                : isLogin
-                ? "Iniciar Sesión"
-                : "Crear Cuenta"}
+              {isLoading ? "Loading..." : isLogin ? "Sign in" : "Sign up"}
             </Button>
           </form>
 
@@ -149,7 +145,7 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
               type="button"
             >
               <Play className="w-4 h-4 mr-2" />
-              Ver Demo
+              View Demo
             </Button>
           </div>
 
@@ -162,11 +158,11 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
                 setPassword("");
                 setName("");
               }}
-              className="text-sm text-primary hover:underline"
+              className="text-sm text-primary hover:underline cursor-pointer"
             >
               {isLogin
-                ? "¿No tienes cuenta? Crear una"
-                : "¿Ya tienes cuenta? Iniciar sesión"}
+                ? "Don't have an account? Create one"
+                : "Already have an account? Sign in"}
             </button>
           </div>
         </CardContent>

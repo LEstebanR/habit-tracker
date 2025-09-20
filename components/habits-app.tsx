@@ -48,7 +48,7 @@ interface HabitsAppProps {
 const defaultHabits: Habit[] = [
   {
     id: "1",
-    name: "Beber 8 vasos de agua",
+    name: "Drink 8 glasses of water",
     iconName: "Heart", // Using string identifier instead of React element
     streak: 0,
     completedToday: false,
@@ -58,7 +58,7 @@ const defaultHabits: Habit[] = [
   },
   {
     id: "2",
-    name: "Hacer ejercicio 30 min",
+    name: "Exercise for 30 min",
     iconName: "Zap",
     streak: 0,
     completedToday: false,
@@ -68,7 +68,7 @@ const defaultHabits: Habit[] = [
   },
   {
     id: "3",
-    name: "Leer 20 páginas",
+    name: "Read 20 pages",
     iconName: "BookOpen",
     streak: 0,
     completedToday: false,
@@ -81,7 +81,7 @@ const defaultHabits: Habit[] = [
 const demoHabits: Habit[] = [
   {
     id: "1",
-    name: "Beber 8 vasos de agua",
+    name: "Drink 8 glasses of water",
     iconName: "Heart",
     streak: 5,
     completedToday: true,
@@ -91,7 +91,7 @@ const demoHabits: Habit[] = [
   },
   {
     id: "2",
-    name: "Hacer ejercicio 30 min",
+    name: "Exercise for 30 min",
     iconName: "Zap",
     streak: 3,
     completedToday: false,
@@ -101,7 +101,7 @@ const demoHabits: Habit[] = [
   },
   {
     id: "3",
-    name: "Leer 20 páginas",
+    name: "Read 20 pages",
     iconName: "BookOpen",
     streak: 7,
     completedToday: true,
@@ -124,7 +124,7 @@ export function HabitsApp({
   const [editMode, setEditMode] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
-  const [habitHistory, setHabitHistory] = useState<Record<string, boolean>>({});
+  const [habitHistory, setHabitHistory] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (user) {
@@ -133,7 +133,7 @@ export function HabitsApp({
         setTotalXP(180); // Demo XP to show level 2
         setLevel(2);
         setIsPremium(false);
-        const demoHistory: Record<string, boolean> = {};
+        const demoHistory: Record<string, number> = {};
         const today = new Date();
         for (let i = 0; i < 365; i++) {
           const date = new Date(today);
@@ -144,12 +144,23 @@ export function HabitsApp({
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
           const weekNumber = Math.floor(i / 7);
 
-          let completionRate = 0.75; // Base 75% completion
-          if (isWeekend) completionRate -= 0.2; // Lower on weekends
-          if (weekNumber % 4 === 0) completionRate += 0.15; // Good weeks every month
-          if (weekNumber % 8 === 7) completionRate -= 0.3; // Bad week every 2 months
+          // Base completion percentage (much lower than before)
+          let baseCompletion = Math.random() * 0.4 + 0.1; // 10% to 50% base
 
-          demoHistory[dateString] = Math.random() < completionRate;
+          if (isWeekend) baseCompletion *= 0.7; // Even lower on weekends
+          if (weekNumber % 4 === 0) baseCompletion *= 1.3; // Slightly better some weeks
+          if (weekNumber % 8 === 7) baseCompletion *= 0.5; // Really bad weeks occasionally
+
+          // Add some randomness and ensure it stays within 0-1 range
+          let finalCompletion = Math.min(
+            1,
+            baseCompletion + (Math.random() - 0.5) * 0.2
+          );
+
+          // Round to nearest 10% to make it cleaner
+          finalCompletion = Math.round(finalCompletion * 10) / 10;
+
+          demoHistory[dateString] = finalCompletion;
         }
         setHabitHistory(demoHistory);
       } else {
@@ -210,7 +221,7 @@ export function HabitsApp({
           const today = new Date().toISOString().split("T")[0];
           setHabitHistory((prev) => ({
             ...prev,
-            [today]: true,
+            [today]: 1.0, // Full completion when habit is completed
           }));
 
           const newXP = totalXP + habit.xpReward;
@@ -300,7 +311,7 @@ export function HabitsApp({
             <div className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
               <Eye className="w-4 h-4" />
               <span className="text-sm font-medium">
-                Modo Demo - Los cambios no se guardan
+                Demo Mode - Changes are not saved
               </span>
             </div>
           </div>
@@ -309,26 +320,12 @@ export function HabitsApp({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              Hola, {user.name}!
+              Hello, {user.name}!
               {isPremium && <Crown className="w-5 h-5 text-yellow-500" />}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Construye tus hábitos
-            </p>
+            <p className="text-sm text-muted-foreground">Build your habits</p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setEditMode(!editMode)}
-              className={editMode ? "text-destructive" : ""}
-            >
-              {editMode ? (
-                <X className="w-4 h-4" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-            </Button>
             <Button variant="ghost" size="sm" onClick={onLogout}>
               <LogOut className="w-4 h-4" />
             </Button>
@@ -355,9 +352,9 @@ export function HabitsApp({
             <div className="bg-card p-8 rounded-2xl text-center animate-bounce">
               <div className="text-6xl mb-4">🎉</div>
               <h2 className="text-2xl font-bold text-primary mb-2">
-                ¡Nivel {level}!
+                Level {level}!
               </h2>
-              <p className="text-muted-foreground">¡Sigue así, campeón!</p>
+              <p className="text-muted-foreground">Keep it up, champion!</p>
             </div>
           </div>
         )}
@@ -367,7 +364,7 @@ export function HabitsApp({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-foreground">
-              Hábitos de hoy
+              Habits of today
             </h2>
             <div className="flex items-center gap-2">
               {!isPremium && (
@@ -376,12 +373,24 @@ export function HabitsApp({
                 </span>
               )}
               <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditMode(!editMode)}
+                className={editMode ? "text-destructive" : ""}
+              >
+                {editMode ? (
+                  <X className="w-4 h-4" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAddHabit(true)}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Agregar
+                Add
               </Button>
             </div>
           </div>
@@ -409,11 +418,11 @@ export function HabitsApp({
           {habits.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
-                No tienes hábitos aún
+                You don't have any habits yet
               </p>
               <Button onClick={() => setShowAddHabit(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Agregar tu primer hábito
+                Add your first habit
               </Button>
             </div>
           )}
@@ -422,8 +431,8 @@ export function HabitsApp({
         <div className="mt-8 p-4 bg-card rounded-xl text-center">
           <p className="text-sm text-muted-foreground">
             {completedToday === totalHabits && totalHabits > 0
-              ? "🎉 ¡Increíble! Completaste todos tus hábitos hoy"
-              : `💪 ${completedToday}/${totalHabits} hábitos completados. ¡Sigue así!`}
+              ? "🎉 Incredible! You completed all your habits today"
+              : `💪 ${completedToday}/${totalHabits} habits completed. Keep it up!`}
           </p>
         </div>
 

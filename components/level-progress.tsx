@@ -17,16 +17,16 @@ export function LevelProgress({
   return (
     <Card className="p-4 mb-6">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-foreground">
-          Nivel {level}
+        <span className="text-md font-medium text-foreground">
+          Level {level}
         </span>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-md text-muted-foreground">
           {currentXP}/{xpForNextLevel} XP
         </span>
       </div>
       <Progress value={progressPercentage} className="h-2" />
-      <div className="text-xs text-muted-foreground mt-1 text-center">
-        {xpForNextLevel - currentXP} XP para el siguiente nivel
+      <div className="text-md text-muted-foreground mt-1 text-center">
+        {xpForNextLevel - currentXP} XP for the next level
       </div>
     </Card>
   );

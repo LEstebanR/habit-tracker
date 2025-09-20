@@ -20,13 +20,16 @@ export default function Home() {
 
   const handleLogin = () => console.log("login");
   const handleRegister = () => console.log("register");
-  const handleLogout = () => console.log("logout");
+  const handleLogout = () => {
+    setUser(null);
+    setIsDemoMode(false);
+  };
 
   const handleDemoMode = () => {
     const demoUser = {
       id: "demo",
       email: "demo@example.com",
-      name: "Usuario Demo",
+      name: "Demo User",
     };
     setUser(demoUser);
     setIsDemoMode(true);

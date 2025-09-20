@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 interface HabitCalendarProps {
-  habitHistory: Record<string, boolean>; // date string -> completed
+  habitHistory: Record<string, number>; // date string -> completion percentage (0-1)
   className?: string;
 }
 
@@ -13,21 +13,38 @@ export function HabitCalendar({
 }: HabitCalendarProps) {
   const calendarData = useMemo(() => {
     const today = new Date();
+    const todayDayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // Calculate how many weeks we need to show today in the last row on the right
+    // We want to show about 20 weeks total for 5 months
+    const totalWeeks = 20;
+    const totalDays = totalWeeks * 7;
+
+    // Calculate start date: go back from today to fill the grid
+    // Position today in the last row, rightmost position
+    const daysFromStart = totalDays - (7 - todayDayOfWeek);
     const startDate = new Date(today);
-    startDate.setDate(today.getDate() - 364); // Show last 365 days
+    startDate.setDate(today.getDate() - daysFromStart);
 
     const days = [];
     const currentDate = new Date(startDate);
 
-    while (currentDate <= today) {
+    for (let i = 0; i < totalDays; i++) {
       const dateString = currentDate.toISOString().split("T")[0];
-      const completed = habitHistory[dateString] || false;
+      const completionPercentage = habitHistory[dateString] || 0;
+
+      // Consider "in range" as the last 140 days from today (5 months)
+      const daysDiff = Math.floor(
+        (today.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const isInRange = daysDiff >= 0 && daysDiff <= 140;
 
       days.push({
         date: new Date(currentDate),
         dateString,
-        completed,
+        completionPercentage: isInRange ? completionPercentage : 0,
         isToday: dateString === today.toISOString().split("T")[0],
+        isInRange,
       });
 
       currentDate.setDate(currentDate.getDate() + 1);
@@ -36,16 +53,20 @@ export function HabitCalendar({
     return days;
   }, [habitHistory]);
 
-  const getIntensity = (completed: boolean) => {
-    if (!completed) return "bg-muted";
+  const getIntensity = (completionPercentage: number, isInRange: boolean) => {
+    if (!isInRange) return "bg-gray-100"; // Out of range days
+    if (completionPercentage === 0) return "bg-muted";
+    if (completionPercentage <= 0.25) return "bg-green-200";
+    if (completionPercentage <= 0.5) return "bg-green-300";
+    if (completionPercentage <= 0.75) return "bg-green-400";
     return "bg-green-500";
   };
 
   const months = [
-    "Ene",
+    "Jan",
     "Feb",
     "Mar",
-    "Abr",
+    "Apr",
     "May",
     "Jun",
     "Jul",
@@ -53,33 +74,60 @@ export function HabitCalendar({
     "Sep",
     "Oct",
     "Nov",
-    "Dic",
+    "Dec",
   ];
 
-  const weekdays = ["D", "L", "M", "M", "J", "V", "S"];
+  // Get month labels based on the calendar data
+  const getMonthLabels = () => {
+    if (calendarData.length === 0) return [];
+
+    // Create labels for roughly 4 months worth of space (16 weeks)
+    const today = new Date();
+    const threeMonthsAgo = new Date(today);
+    threeMonthsAgo.setMonth(today.getMonth() - 3);
+
+    const twoMonthsAgo = new Date(today);
+    twoMonthsAgo.setMonth(today.getMonth() - 2);
+
+    const oneMonthAgo = new Date(today);
+    oneMonthAgo.setMonth(today.getMonth() - 1);
+
+    return [
+      months[threeMonthsAgo.getMonth()],
+      months[twoMonthsAgo.getMonth()],
+      months[oneMonthAgo.getMonth()],
+      months[today.getMonth()],
+    ];
+  };
+
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
     <div className={`p-4 bg-card rounded-xl ${className}`}>
-      <h3 className="text-lg font-semibold mb-4">Actividad del Año</h3>
+      <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
 
       <div className="space-y-2">
         {/* Month labels */}
-        <div className="flex text-xs text-muted-foreground ml-8">
-          {months.map((month, index) => (
-            <div key={month} className="flex-1 text-center">
-              {index % 3 === 0 ? month : ""}
-            </div>
-          ))}
+        <div className="flex text-xs text-muted-foreground">
+          <div className="w-9 flex-shrink-0"></div>{" "}
+          {/* Space for weekday labels */}
+          <div className="flex flex-1">
+            {getMonthLabels().map((monthName, index) => (
+              <div key={`month-${index}`} className="flex-1 text-center">
+                {monthName}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Calendar grid */}
-        <div className="flex gap-1">
+        <div className="flex gap-3">
           {/* Weekday labels */}
-          <div className="flex flex-col gap-1 text-xs text-muted-foreground mr-1">
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
             {weekdays.map((day, index) => (
               <div
                 key={`weekday-${index}`}
-                className="w-3 h-3 flex items-center justify-center"
+                className="w-6 h-3 flex items-center justify-start"
               >
                 {day}
               </div>
@@ -87,16 +135,32 @@ export function HabitCalendar({
           </div>
 
           {/* Calendar days */}
-          <div className="grid grid-cols-53 gap-1">
+          <div
+            className="grid grid-rows-7 gap-1 flex-1"
+            style={{
+              gridTemplateColumns: `repeat(${Math.ceil(
+                calendarData.length / 7
+              )}, 1fr)`,
+            }}
+          >
             {calendarData.map((day, index) => (
               <div
                 key={index}
-                className={`w-3 h-3 rounded-sm ${getIntensity(day.completed)} ${
-                  day.isToday ? "ring-2 ring-primary ring-offset-1" : ""
-                }`}
+                className={`w-3 h-3 rounded-sm border border-gray-300 ${getIntensity(
+                  day.completionPercentage,
+                  day.isInRange
+                )} ${day.isToday ? "ring-2 ring-primary ring-offset-1" : ""}`}
                 title={`${day.dateString}: ${
-                  day.completed ? "Completado" : "No completado"
+                  !day.isInRange
+                    ? "Outside range"
+                    : day.completionPercentage === 0
+                    ? "Not completed"
+                    : `${Math.round(day.completionPercentage * 100)}% completed`
                 }`}
+                style={{
+                  gridColumn: Math.floor(index / 7) + 1,
+                  gridRow: (index % 7) + 1,
+                }}
               />
             ))}
           </div>
@@ -104,7 +168,7 @@ export function HabitCalendar({
 
         {/* Legend */}
         <div className="flex items-center justify-between text-xs text-muted-foreground mt-4">
-          <span>Menos</span>
+          <span>Less</span>
           <div className="flex gap-1">
             <div className="w-3 h-3 rounded-sm bg-muted" />
             <div className="w-3 h-3 rounded-sm bg-green-200" />
@@ -112,7 +176,7 @@ export function HabitCalendar({
             <div className="w-3 h-3 rounded-sm bg-green-500" />
             <div className="w-3 h-3 rounded-sm bg-green-600" />
           </div>
-          <span>Más</span>
+          <span>More</span>
         </div>
       </div>
     </div>

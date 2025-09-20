@@ -158,13 +158,13 @@ export function AddHabitModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>Agregar Nuevo Hábito</DialogTitle>
+            <DialogTitle>Add New Habit</DialogTitle>
             <Button variant="ghost" size="sm" onClick={handleClose}>
               <X className="w-4 h-4" />
             </Button>
           </div>
           <DialogDescription>
-            Crea un hábito personalizado para tu rutina diaria
+            Create a custom habit for your daily routine
           </DialogDescription>
         </DialogHeader>
 
@@ -172,24 +172,24 @@ export function AddHabitModal({
           {/* Habit Name */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              Nombre del hábito
+              Habit name
             </label>
             <Input
               type="text"
-              placeholder="Ej: Tomar vitaminas, Caminar 15 min..."
+              placeholder="Ej: Take vitamins, Walk 15 min..."
               value={habitName}
               onChange={(e) => setHabitName(e.target.value)}
               maxLength={50}
             />
             <p className="text-xs text-muted-foreground">
-              {habitName.length}/50 caracteres
+              {habitName.length}/50 characters
             </p>
           </div>
 
           {/* Icon Selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-foreground">
-              Elige un ícono
+              Choose an icon
             </label>
             <div className="grid grid-cols-5 gap-2">
               {iconOptions.map((option, index) => (
@@ -216,7 +216,7 @@ export function AddHabitModal({
           {/* XP Reward */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              Puntos XP (5-50)
+              XP Points (5-50)
             </label>
             <Input
               type="number"
@@ -226,14 +226,14 @@ export function AddHabitModal({
               onChange={(e) => setXpReward(Number(e.target.value))}
             />
             <p className="text-xs text-muted-foreground">
-              Más puntos para hábitos más difíciles
+              More points for harder habits
             </p>
           </div>
 
           {/* Preview */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              Vista previa
+              Preview
             </label>
             <Card className="p-3">
               <div className="flex items-center gap-3">
@@ -244,7 +244,7 @@ export function AddHabitModal({
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium text-foreground">
-                    {habitName || "Nombre del hábito"}
+                    {habitName || "Habit name"}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     +{xpReward} XP
@@ -267,10 +267,10 @@ export function AddHabitModal({
               onClick={handleClose}
               className="flex-1 bg-transparent"
             >
-              Cancelar
+              Cancel
             </Button>
             <Button type="submit" className="flex-1">
-              Agregar Hábito
+              Add Habit
             </Button>
           </div>
         </form>
