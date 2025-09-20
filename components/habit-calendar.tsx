@@ -15,9 +15,9 @@ export function HabitCalendar({
     const today = new Date();
     const todayDayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
 
-    // Calculate how many weeks we need to show today in the last row on the right
-    // We want to show about 20 weeks total for 5 months
-    const totalWeeks = 20;
+    // Use different week counts for mobile vs desktop
+    // We'll use CSS to hide/show the appropriate number of weeks
+    const totalWeeks = 20; // Desktop: 20 weeks, Mobile: 12 weeks (handled by CSS)
     const totalDays = totalWeeks * 7;
 
     // Calculate start date: go back from today to fill the grid
@@ -121,13 +121,13 @@ export function HabitCalendar({
         </div>
 
         {/* Calendar grid */}
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3 ">
           {/* Weekday labels */}
-          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground pb-1">
             {weekdays.map((day, index) => (
               <div
                 key={`weekday-${index}`}
-                className="w-6 h-3 flex items-center justify-start"
+                className="w-5 sm:w-6 h-3 sm:h-3 flex items-center justify-start"
               >
                 {day}
               </div>
@@ -135,34 +135,60 @@ export function HabitCalendar({
           </div>
 
           {/* Calendar days */}
-          <div
-            className="grid grid-rows-7 gap-1 flex-1"
-            style={{
-              gridTemplateColumns: `repeat(${Math.ceil(
-                calendarData.length / 7
-              )}, 1fr)`,
-            }}
-          >
-            {calendarData.map((day, index) => (
-              <div
-                key={index}
-                className={`w-3 h-3 rounded-sm border border-gray-300 ${getIntensity(
-                  day.completionPercentage,
-                  day.isInRange
-                )} ${day.isToday ? "ring-2 ring-primary ring-offset-1" : ""}`}
-                title={`${day.dateString}: ${
-                  !day.isInRange
-                    ? "Outside range"
-                    : day.completionPercentage === 0
-                    ? "Not completed"
-                    : `${Math.round(day.completionPercentage * 100)}% completed`
-                }`}
-                style={{
-                  gridColumn: Math.floor(index / 7) + 1,
-                  gridRow: (index % 7) + 1,
-                }}
-              />
-            ))}
+          <div className="flex-1 overflow-x-auto">
+            {/* Mobile: Show only last 12 weeks */}
+            <div className="sm:hidden grid gap-1" style={{ 
+              gridTemplateColumns: 'repeat(12, 1fr)',
+              gridTemplateRows: 'repeat(7, 1fr)'
+            }}>
+              {calendarData.slice(-84).map((day, index) => (
+                <div
+                  key={`mobile-${index}`}
+                  className={`w-3 h-3 rounded-sm border border-gray-300 ${getIntensity(
+                    day.completionPercentage,
+                    day.isInRange
+                  )} ${day.isToday ? "ring-1 ring-primary ring-offset-0" : ""}`}
+                  title={`${day.dateString}: ${
+                    !day.isInRange
+                      ? "Outside range"
+                      : day.completionPercentage === 0
+                      ? "Not completed"
+                      : `${Math.round(day.completionPercentage * 100)}% completed`
+                  }`}
+                  style={{
+                    gridColumn: Math.floor(index / 7) + 1,
+                    gridRow: (index % 7) + 1,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Desktop: Show all 20 weeks */}
+            <div className="hidden sm:grid gap-1" style={{ 
+              gridTemplateColumns: 'repeat(20, 1fr)',
+              gridTemplateRows: 'repeat(7, 1fr)'
+            }}>
+              {calendarData.map((day, index) => (
+                <div
+                  key={`desktop-${index}`}
+                  className={`w-3 h-3 rounded-sm border border-gray-300 ${getIntensity(
+                    day.completionPercentage,
+                    day.isInRange
+                  )} ${day.isToday ? "ring-2 ring-primary ring-offset-1" : ""}`}
+                  title={`${day.dateString}: ${
+                    !day.isInRange
+                      ? "Outside range"
+                      : day.completionPercentage === 0
+                      ? "Not completed"
+                      : `${Math.round(day.completionPercentage * 100)}% completed`
+                  }`}
+                  style={{
+                    gridColumn: Math.floor(index / 7) + 1,
+                    gridRow: (index % 7) + 1,
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
