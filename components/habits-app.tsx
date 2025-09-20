@@ -12,6 +12,11 @@ import {
   Trash2,
   Eye,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { useState, useEffect } from "react";
 import { HabitCard } from "./habit-card";
@@ -326,9 +331,16 @@ export function HabitsApp({
             <p className="text-sm text-muted-foreground">Build your habits</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onLogout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={onLogout}>
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Logout</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
