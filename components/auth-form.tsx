@@ -1,6 +1,6 @@
-"use client";
 
 import type React from "react";
+import Form from 'next/form'
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,46 +15,16 @@ import {
 import { Eye, EyeOff, User, Mail, Lock, Play } from "lucide-react";
 
 interface AuthFormProps {
-  onLogin: () => void;
-  onRegister: () => void;
-  // onLogin: (email: string, password: string) => Promise<boolean>;
-  // onRegister: (
-  //   email: string,
-  //   password: string,
-  //   name: string
-  // ) => Promise<boolean>;
+  loginAction: (formData: FormData) => Promise<void>;
+  registerAction: (formData: FormData) => Promise<void>;
   onDemo: () => void;
 }
 
-export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
+export function AuthForm({ loginAction, registerAction, onDemo }: AuthFormProps) {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    // e.preventDefault();
-    // setError("");
-    // if (!email || !password || (!isLogin && !name)) {
-    //   setError("Por favor completa todos los campos");
-    //   return;
-    // }
-    // setIsLoading(true);
-    // const success = isLogin
-    //   ? await onLogin(email, password)
-    //   : await onRegister(email, password, name);
-    // setIsLoading(false);
-    // if (!success) {
-    //   setError(
-    //     isLogin
-    //       ? "Email o contraseña incorrectos"
-    //       : "Este email ya está registrado"
-    //   );
-    // }
-  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -73,7 +43,7 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <Form action={isLogin ? loginAction : registerAction} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
                 <div className="relative">
@@ -81,9 +51,8 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
                   <Input
                     type="text"
                     placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
                     className="pl-10"
+                    name="name"
                   />
                 </div>
               </div>
@@ -95,9 +64,8 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
                 <Input
                   type="email"
                   placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
+                  name="email"
                 />
               </div>
             </div>
@@ -108,9 +76,8 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="Your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
+                  name="password"
                 />
                 <button
                   type="button"
@@ -135,8 +102,7 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Loading..." : isLogin ? "Sign in" : "Sign up"}
             </Button>
-          </form>
-
+          </Form>
           <div className="mt-4">
             <Button
               variant="outline"
@@ -154,9 +120,6 @@ export function AuthForm({ onLogin, onRegister, onDemo }: AuthFormProps) {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError("");
-                setEmail("");
-                setPassword("");
-                setName("");
               }}
               className="text-sm text-primary hover:underline cursor-pointer"
             >

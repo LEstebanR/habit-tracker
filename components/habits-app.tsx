@@ -22,9 +22,9 @@ import { useState, useEffect } from "react";
 import { HabitCard } from "./habit-card";
 import { UserStats } from "./user-stats";
 import { LevelProgress } from "@/components/level-progress";
-import { AddHabitModal } from "@/components/add-habit-modal";
+import { AddHabitModal } from "@/components/modals/add-habit-modal";
 import { Button } from "@/components/ui/button";
-import { SubscriptionModal } from "@/components/subscription-modal";
+import { SubscriptionModal } from "@/components/modals/subscription-modal";
 import { HabitCalendar } from "./habit-calendar";
 
 export interface Habit {

@@ -2,6 +2,8 @@
 import { AuthForm } from "@/components/auth-form";
 import { useState } from "react";
 import { HabitsApp } from "@/components/habits-app";
+import { loginAction, registerAction } from "./actions";
+
 
 interface User {
   id: string;
@@ -14,24 +16,18 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
 
-  function handleSubmit() {
-    console.log("submit");
-  }
 
-  const handleLogin = () => console.log("login");
-  const handleRegister = () => console.log("register");
   const handleLogout = () => {
     setUser(null);
     setIsDemoMode(false);
   };
 
   const handleDemoMode = () => {
-    const demoUser = {
+    setUser( {
       id: "demo",
       email: "demo@example.com",
       name: "Demo User",
-    };
-    setUser(demoUser);
+    });
     setIsDemoMode(true);
   };
 
@@ -40,7 +36,7 @@ export default function Home() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -49,8 +45,8 @@ export default function Home() {
   if (!user) {
     return (
       <AuthForm
-        onLogin={handleLogin}
-        onRegister={handleRegister}
+        loginAction={loginAction}
+        registerAction={registerAction}
         onDemo={handleDemoMode}
       />
     );
