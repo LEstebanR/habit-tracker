@@ -1,14 +1,14 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma } from '@prisma/client'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 const userData: Prisma.UserCreateInput[] = [
   {
-    name: "Esteban",
-    email: "lesteban.dev@gmail.com",
+    name: 'Esteban',
+    email: 'lesteban.dev@gmail.com',
     createdAt: new Date(),
   },
-];
+]
 
 export async function main() {
   for (const u of userData) {
@@ -16,8 +16,8 @@ export async function main() {
       where: { email: u.email },
       update: u,
       create: u,
-    });
+    })
   }
 }
 
-main();
+main()

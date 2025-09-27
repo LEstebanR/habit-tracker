@@ -1,10 +1,10 @@
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 
 interface LevelProgressProps {
-  currentXP: number;
-  xpForNextLevel: number;
-  level: number;
+  currentXP: number
+  xpForNextLevel: number
+  level: number
 }
 
 export function LevelProgress({
@@ -12,12 +12,12 @@ export function LevelProgress({
   xpForNextLevel,
   level,
 }: LevelProgressProps) {
-  const progressPercentage = (currentXP / xpForNextLevel) * 100;
+  const progressPercentage = (currentXP / xpForNextLevel) * 100
 
   return (
-    <Card className="p-4 mb-6">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-md font-medium text-foreground">
+    <Card className="mb-6 p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-md text-foreground font-medium">
           Level {level}
         </span>
         <span className="text-md text-muted-foreground">
@@ -29,5 +29,5 @@ export function LevelProgress({
         {xpForNextLevel - currentXP} XP for the next level
       </div>
     </Card>
-  );
+  )
 }

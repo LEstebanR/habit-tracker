@@ -1,27 +1,27 @@
-import type React from "react";
+import type React from 'react'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { User, Play } from "lucide-react";
+} from '@/components/ui/card'
+import { User, Play } from 'lucide-react'
 
 interface AuthFormProps {
-  onDemo: () => void;
-  signInWithGoogle: () => Promise<void>;
+  onDemo: () => void
+  signInWithGoogle: () => Promise<void>
 }
 
 export function AuthForm({ onDemo, signInWithGoogle }: AuthFormProps) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="bg-background flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-8 h-8 text-primary-foreground" />
+          <div className="bg-primary mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+            <User className="text-primary-foreground h-8 w-8" />
           </div>
           <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
           <CardDescription>
@@ -29,7 +29,7 @@ export function AuthForm({ onDemo, signInWithGoogle }: AuthFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mt-4 flex flex-col gap-2  ">
+          <div className="mt-4 flex flex-col gap-2">
             <Button
               variant="outline"
               className="w-full bg-transparent"
@@ -44,12 +44,12 @@ export function AuthForm({ onDemo, signInWithGoogle }: AuthFormProps) {
               onClick={onDemo}
               type="button"
             >
-              <Play className="w-4 h-4 mr-2" />
+              <Play className="mr-2 h-4 w-4" />
               View Demo
             </Button>
           </div>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
