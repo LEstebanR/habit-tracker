@@ -20,8 +20,14 @@ function HomeContent() {
 
   useEffect(() => {
     if (session?.user) {
-      setUser(session.user as User);
-      console.log("session.user", session.user);
+      // Safely check that all required fields are present before setting user
+      if (session.user.id && session.user.email && session.user.name) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+        });
+      }
     } else if (status === "unauthenticated") {
       setUser(null);
     }
