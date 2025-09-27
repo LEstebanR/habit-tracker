@@ -4,18 +4,18 @@ const prisma = new PrismaClient()
 
 const userData: Prisma.UserCreateInput[] = [
   {
-    name: 'Esteban',
-    email: 'lesteban.dev@gmail.com',
     createdAt: new Date(),
+    email: 'lesteban.dev@gmail.com',
+    name: 'Esteban',
   },
 ]
 
 export async function main() {
   for (const u of userData) {
     await prisma.user.upsert({
-      where: { email: u.email },
-      update: u,
       create: u,
+      update: u,
+      where: { email: u.email },
     })
   }
 }
