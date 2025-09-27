@@ -1,9 +1,9 @@
 ---
 name: Epic
 about: Create an epic for this project
-title: "[EPIC] "
+title: '[EPIC] '
 labels: epic
-assignees: ""
+assignees: ''
 ---
 
 # Epic

@@ -5,7 +5,13 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc"
   },
   "dependencies": {
     "react": "19.1.0",
@@ -13,11 +19,19 @@
     "next": "15.5.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "3",
     "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
-  }
+    "tailwindcss": "^4",
+    "eslint": "9",
+    "eslint-config-next": "15.3.2",
+    "eslint-config-prettier": "10.1.5",
+    "eslint-plugin-prettier": "5.4.1",
+    "prettier": "3.5.3",
+    "prettier-plugin-tailwindcss": "0.6.12"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
