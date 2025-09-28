@@ -14,8 +14,53 @@ datasource db {
 }
 
 model User {
-  id    String  @id @default(cuid())
-  email String  @unique
-  name  String?
-  createdAt DateTime @default(now())
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  image         String?        // avatar de Google si quieres
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  habits        Habit[]
+  subscription  Subscription?
+}
+
+model Habit {
+  id        String       @id @default(cuid())
+  title     String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+
+  entries   HabitEntry[]
+}
+
+model HabitEntry {
+  id        String     @id @default(cuid())
+  date      DateTime   // el día específico
+  completed Boolean    @default(false)
+
+  habitId   String
+  habit     Habit      @relation(fields: [habitId], references: [id])
+
+  @@unique([habitId, date]) // un registro por hábito/día
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  plan        Plan     @default(FREE)
+  stripeId    String?  // o el provider que uses
+  active      Boolean  @default(true)
+  startedAt   DateTime @default(now())
+  expiresAt   DateTime?
+
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+enum Plan {
+  FREE
+  PREMIUM
 }
