@@ -2,7 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export const userData: Prisma.UserCreateInput[] = [
+const userData: Prisma.UserCreateInput[] = [
   {
     createdAt: new Date(),
     email: 'lesteban.dev@gmail.com',
