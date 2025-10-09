@@ -26,10 +26,16 @@ model User {
 }
 
 model Habit {
-  id        String       @id @default(cuid())
-  title     String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  title          String
+  iconName       String       @default("Heart")
+  color          String       @default("bg-blue-500")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  xpReward       Int          @default(10)
+  currentStreak  Int          @default(0)
+  longestStreak  Int          @default(0)
+  lastCompleted  DateTime?
 
   userId    String
   user      User         @relation(fields: [userId], references: [id])
