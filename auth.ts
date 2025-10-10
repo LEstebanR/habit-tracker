@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import { prisma } from '@/lib/prisma'
+import { createDefaultHabits } from './lib/create-default-habits'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
@@ -47,12 +48,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         })
 
         if (!existingUser) {
-          await prisma.user.create({
+          const newUser = await prisma.user.create({
             data: {
               email: user.email,
               name: user.name,
             },
           })
+          await createDefaultHabits(newUser.id)
         }
       } catch (err) {
         console.error('DB error:', err)

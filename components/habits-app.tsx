@@ -11,6 +11,11 @@ import {
   Plus,
   Trash2,
   Eye,
+  Coffee,
+  Moon,
+  Smile,
+  Music,
+  Camera,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -18,7 +23,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { HabitCard } from './habit-card'
 import { UserStats } from './user-stats'
 import { LevelProgress } from '@/components/level-progress'
@@ -26,6 +31,7 @@ import { AddHabitModal } from '@/components/modals/add-habit-modal'
 import { Button } from '@/components/ui/button'
 import { SubscriptionModal } from '@/components/modals/subscription-modal'
 import { HabitCalendar } from './habit-calendar'
+// Removed database actions - using API endpoints instead
 
 export interface Habit {
   id: string
@@ -49,39 +55,6 @@ interface HabitsAppProps {
   onLogout: () => void
   isDemoMode?: boolean
 }
-
-const defaultHabits: Habit[] = [
-  {
-    color: 'bg-blue-500',
-    completedToday: false,
-    iconName: 'Heart', // Using string identifier instead of React element
-    id: '1',
-    isCustom: true,
-    name: 'Drink 8 glasses of water',
-    streak: 0,
-    xpReward: 10,
-  },
-  {
-    color: 'bg-green-500',
-    completedToday: false,
-    iconName: 'Zap',
-    id: '2',
-    isCustom: true,
-    name: 'Exercise for 30 min',
-    streak: 0,
-    xpReward: 15,
-  },
-  {
-    color: 'bg-purple-500',
-    completedToday: false,
-    iconName: 'BookOpen',
-    id: '3',
-    isCustom: true,
-    name: 'Read 20 pages',
-    streak: 0,
-    xpReward: 12,
-  },
-]
 
 const demoHabits: Habit[] = [
   {
@@ -131,6 +104,43 @@ export function HabitsApp({
   const [showSubscription, setShowSubscription] = useState(false)
   const [habitHistory, setHabitHistory] = useState<Record<string, number>>({})
 
+  const loadHabitsFromDatabase = useCallback(async () => {
+    try {
+      const response = await fetch('/api/habits')
+      if (!response.ok) {
+        throw new Error('Failed to fetch habits')
+      }
+
+      const data = await response.json()
+      setHabits(data.habits)
+
+      // Load user data from localStorage for XP, level, etc.
+      const userDataKey = `habit-tracker-data-${user.id}`
+      const savedData = localStorage.getItem(userDataKey)
+
+      if (savedData) {
+        const data = JSON.parse(savedData)
+        setTotalXP(data.totalXP || 0)
+        setLevel(data.level || 1)
+        setIsPremium(data.isPremium || false)
+        setHabitHistory(data.habitHistory || {})
+      } else {
+        setTotalXP(0)
+        setLevel(1)
+        setIsPremium(false)
+        setHabitHistory({})
+      }
+    } catch (error) {
+      console.error('Error loading habits from database:', error)
+      // Fallback to default habits
+      setHabits([])
+      setTotalXP(0)
+      setLevel(1)
+      setIsPremium(false)
+      setHabitHistory({})
+    }
+  }, [user.id])
+
   useEffect(() => {
     if (user) {
       if (isDemoMode) {
@@ -169,26 +179,11 @@ export function HabitsApp({
         }
         setHabitHistory(demoHistory)
       } else {
-        const userDataKey = `habit-tracker-data-${user.id}`
-        const savedData = localStorage.getItem(userDataKey)
-
-        if (savedData) {
-          const data = JSON.parse(savedData)
-          setHabits(data.habits || defaultHabits)
-          setTotalXP(data.totalXP || 0)
-          setLevel(data.level || 1)
-          setIsPremium(data.isPremium || false)
-          setHabitHistory(data.habitHistory || {})
-        } else {
-          setHabits(defaultHabits)
-          setTotalXP(0)
-          setLevel(1)
-          setIsPremium(false)
-          setHabitHistory({})
-        }
+        // Load habits from database
+        loadHabitsFromDatabase()
       }
     }
-  }, [user, isDemoMode])
+  }, [user, isDemoMode, loadHabitsFromDatabase])
 
   useEffect(() => {
     if (user && habits.length > 0 && !isDemoMode) {
@@ -219,31 +214,77 @@ export function HabitsApp({
     return Math.round((completedHabits / habits.length) * 100)
   }
 
-  const completeHabit = (habitId: string) => {
+  const completeHabit = async (habitId: string) => {
+    try {
+      const response = await fetch(`/api/habits/${habitId}/checkin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        if (error.error === 'Habit already completed today') {
+          // Toggle off if already completed
+          await toggleHabitOff(habitId)
+          return
+        }
+        throw new Error(error.error || 'Failed to complete habit')
+      }
+
+      const data = await response.json()
+
+      // Update local state with new streak
+      setHabits((prevHabits) =>
+        prevHabits.map((habit) => {
+          if (habit.id === habitId) {
+            const today = new Date().toISOString().split('T')[0]
+            setHabitHistory((prev) => ({
+              ...prev,
+              [today]: 1.0, // Full completion when habit is completed
+            }))
+
+            const newXP = totalXP + habit.xpReward
+            const newLevel = calculateLevel(newXP)
+
+            setTotalXP(newXP)
+
+            if (newLevel > level) {
+              setLevel(newLevel)
+              setShowLevelUp(true)
+              setTimeout(() => setShowLevelUp(false), 3000)
+            }
+
+            return {
+              ...habit,
+              completedToday: true,
+              streak: data.habit.currentStreak,
+            }
+          }
+          return habit
+        })
+      )
+    } catch (error) {
+      console.error('Error completing habit:', error)
+    }
+  }
+
+  const toggleHabitOff = async (habitId: string) => {
+    // For now, just update local state
+    // In the future, you could create an endpoint to toggle off
     setHabits((prevHabits) =>
       prevHabits.map((habit) => {
-        if (habit.id === habitId && !habit.completedToday) {
+        if (habit.id === habitId) {
           const today = new Date().toISOString().split('T')[0]
           setHabitHistory((prev) => ({
             ...prev,
-            [today]: 1.0, // Full completion when habit is completed
+            [today]: 0,
           }))
-
-          const newXP = totalXP + habit.xpReward
-          const newLevel = calculateLevel(newXP)
-
-          setTotalXP(newXP)
-
-          if (newLevel > level) {
-            setLevel(newLevel)
-            setShowLevelUp(true)
-            setTimeout(() => setShowLevelUp(false), 3000)
-          }
 
           return {
             ...habit,
-            completedToday: true,
-            streak: habit.streak + 1,
+            completedToday: false,
           }
         }
         return habit
@@ -303,8 +344,18 @@ export function HabitsApp({
         return <Trophy className="h-6 w-6" />
       case 'Target':
         return <Target className="h-6 w-6" />
+      case 'Coffee':
+        return <Coffee className="h-6 w-6" />
+      case 'Moon':
+        return <Moon className="h-6 w-6" />
+      case 'Smile':
+        return <Smile className="h-6 w-6" />
+      case 'Music':
+        return <Music className="h-6 w-6" />
+      case 'Camera':
+        return <Camera className="h-6 w-6" />
       default:
-        return null
+        return <Heart className="h-6 w-6" />
     }
   }
 
