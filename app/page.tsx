@@ -47,10 +47,9 @@ function HomeContent() {
     setIsDemoMode(true)
   }
 
-  // Mostrar loading mientras NextAuth está verificando la sesión
   if (status === 'loading') {
     return (
-      <div className="bg-background flex min-h-screen items-center justify-center">
+      <div className="bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="border-primary mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"></div>
           <p className="text-muted-foreground">Loading...</p>
