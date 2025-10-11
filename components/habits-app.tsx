@@ -360,7 +360,7 @@ export function HabitsApp({
   }
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background">
       <div className="container mx-auto max-w-md px-4 py-8">
         {isDemoMode && (
           <div className="mb-4 rounded-lg border border-orange-200 bg-orange-100 p-3 dark:border-orange-800 dark:bg-orange-900/20">
