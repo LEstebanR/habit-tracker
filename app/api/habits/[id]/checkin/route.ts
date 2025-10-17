@@ -84,15 +84,33 @@ export async function POST(
 
     const newLongestStreak = Math.max(habit.longestStreak, newCurrentStreak)
 
-    // Update habit with new streak values
-    const updatedHabit = await prisma.habit.update({
-      where: { id: habitId },
-      data: {
-        currentStreak: newCurrentStreak,
-        longestStreak: newLongestStreak,
-        lastCompleted: today,
-      },
+    // Get current user data for XP calculation
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { totalXP: true, level: true },
     })
+
+    const newTotalXP = (currentUser?.totalXP || 0) + habit.xpReward
+    const newLevel = Math.floor(newTotalXP / 100) + 1
+
+    // Update habit with new streak values and user XP
+    const [updatedHabit, updatedUser] = await prisma.$transaction([
+      prisma.habit.update({
+        where: { id: habitId },
+        data: {
+          currentStreak: newCurrentStreak,
+          longestStreak: newLongestStreak,
+          lastCompleted: today,
+        },
+      }),
+      prisma.user.update({
+        where: { id: session.user.id },
+        data: {
+          totalXP: newTotalXP,
+          level: newLevel,
+        },
+      }),
+    ])
 
     return NextResponse.json({
       success: true,
@@ -101,6 +119,10 @@ export async function POST(
         currentStreak: updatedHabit.currentStreak,
         longestStreak: updatedHabit.longestStreak,
         completedToday: true,
+      },
+      user: {
+        totalXP: updatedUser.totalXP,
+        level: updatedUser.level,
       },
     })
   } catch (error) {

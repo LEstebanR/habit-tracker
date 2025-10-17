@@ -1,5 +1,3 @@
-'use client'
-
 import type React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -48,7 +46,8 @@ export function HabitCard({ habit, onComplete, icon }: HabitCardProps) {
     <Card
       className={cn(
         'p-4 transition-all duration-200 hover:shadow-md',
-        habit.completedToday && 'bg-muted/50 border-primary/20'
+        habit.completedToday &&
+          'border-green-500/50 bg-green-50 dark:border-green-500/30 dark:bg-green-950/20'
       )}
     >
       <div className="flex items-center justify-between">

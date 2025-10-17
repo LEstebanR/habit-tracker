@@ -30,8 +30,11 @@ import { LevelProgress } from '@/components/level-progress'
 import { AddHabitModal } from '@/components/modals/add-habit-modal'
 import { Button } from '@/components/ui/button'
 import { SubscriptionModal } from '@/components/modals/subscription-modal'
+import { DeleteHabitModal } from '@/components/modals/delete-habit-modal'
 import { HabitCalendar } from './habit-calendar'
-// Removed database actions - using API endpoints instead
+import { useUser } from '@/hooks/useUser'
+import { useUserStats } from '@/hooks/useUserStats'
+import { toast } from 'sonner'
 
 export interface Habit {
   id: string
@@ -94,15 +97,16 @@ export function HabitsApp({
   onLogout,
   isDemoMode = false,
 }: HabitsAppProps) {
+  const { user: userData } = useUser()
+  const { stats, updateStats } = useUserStats()
   const [habits, setHabits] = useState<Habit[]>([])
-  const [totalXP, setTotalXP] = useState(0)
-  const [level, setLevel] = useState(1)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [showAddHabit, setShowAddHabit] = useState(false)
   const [editMode, setEditMode] = useState(false)
-  const [isPremium, setIsPremium] = useState(false)
   const [showSubscription, setShowSubscription] = useState(false)
   const [habitHistory, setHabitHistory] = useState<Record<string, number>>({})
+  const [habitToDelete, setHabitToDelete] = useState<Habit | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const loadHabitsFromDatabase = useCallback(async () => {
     try {
@@ -114,29 +118,20 @@ export function HabitsApp({
       const data = await response.json()
       setHabits(data.habits)
 
-      // Load user data from localStorage for XP, level, etc.
+      // Load habit history from localStorage
       const userDataKey = `habit-tracker-data-${user.id}`
       const savedData = localStorage.getItem(userDataKey)
 
       if (savedData) {
         const data = JSON.parse(savedData)
-        setTotalXP(data.totalXP || 0)
-        setLevel(data.level || 1)
-        setIsPremium(data.isPremium || false)
         setHabitHistory(data.habitHistory || {})
       } else {
-        setTotalXP(0)
-        setLevel(1)
-        setIsPremium(false)
         setHabitHistory({})
       }
     } catch (error) {
       console.error('Error loading habits from database:', error)
       // Fallback to default habits
       setHabits([])
-      setTotalXP(0)
-      setLevel(1)
-      setIsPremium(false)
       setHabitHistory({})
     }
   }, [user.id])
@@ -145,9 +140,6 @@ export function HabitsApp({
     if (user) {
       if (isDemoMode) {
         setHabits(demoHabits)
-        setTotalXP(180) // Demo XP to show level 2
-        setLevel(2)
-        setIsPremium(false)
         const demoHistory: Record<string, number> = {}
         const today = new Date()
         for (let i = 0; i < 365; i++) {
@@ -186,35 +178,57 @@ export function HabitsApp({
   }, [user, isDemoMode, loadHabitsFromDatabase])
 
   useEffect(() => {
-    if (user && habits.length > 0 && !isDemoMode) {
+    if (user && !isDemoMode) {
       const userDataKey = `habit-tracker-data-${user.id}`
       const dataToSave = {
         habitHistory,
-        habits,
-        isPremium,
-        level,
-        totalXP,
       }
       localStorage.setItem(userDataKey, JSON.stringify(dataToSave))
     }
-  }, [user, habits, totalXP, level, isPremium, habitHistory, isDemoMode])
+  }, [user, habitHistory, isDemoMode])
 
-  const calculateLevel = (xp: number) => Math.floor(xp / 100) + 1
   const getXPForNextLevel = (currentLevel: number) => currentLevel * 100
   const getCurrentLevelXP = (xp: number, level: number) =>
     xp - (level - 1) * 100
 
-  const calculateTotalStreak = () => {
-    return habits.reduce((total, habit) => total + habit.streak, 0)
-  }
-
-  const calculateWeeklyCompletion = () => {
-    if (habits.length === 0) return 0
-    const completedHabits = habits.filter((h) => h.completedToday).length
-    return Math.round((completedHabits / habits.length) * 100)
-  }
-
   const completeHabit = async (habitId: string) => {
+    const habit = habits.find((h) => h.id === habitId)
+    if (!habit) return
+
+    // Store original state for rollback
+    const originalHabit = { ...habit }
+    const currentLevel = stats?.level || 1
+    const currentXP = stats?.totalXP || 0
+    const currentCompletedToday = stats?.completedToday || 0
+    const currentTotalStreak = stats?.totalStreak || 0
+
+    // Optimistic update - update UI immediately
+    const today = new Date().toISOString().split('T')[0]
+
+    setHabits((prevHabits) =>
+      prevHabits.map((h) =>
+        h.id === habitId
+          ? { ...h, completedToday: true, streak: h.streak + 1 }
+          : h
+      )
+    )
+
+    setHabitHistory((prev) => ({
+      ...prev,
+      [today]: 1.0,
+    }))
+
+    // Update stats optimistically
+    const newXP = currentXP + habit.xpReward
+    const newLevel = Math.floor(newXP / 100) + 1
+    updateStats({
+      totalXP: newXP,
+      level: newLevel,
+      completedToday: currentCompletedToday + 1,
+      totalStreak: currentTotalStreak + 1,
+    })
+
+    // Make API call in background
     try {
       const response = await fetch(`/api/habits/${habitId}/checkin`, {
         method: 'POST',
@@ -226,8 +240,19 @@ export function HabitsApp({
       if (!response.ok) {
         const error = await response.json()
         if (error.error === 'Habit already completed today') {
-          // Toggle off if already completed
-          await toggleHabitOff(habitId)
+          // Revert optimistic update
+          setHabits((prevHabits) =>
+            prevHabits.map((h) => (h.id === habitId ? originalHabit : h))
+          )
+          updateStats({
+            totalXP: currentXP,
+            level: currentLevel,
+            completedToday: currentCompletedToday,
+            totalStreak: currentTotalStreak,
+          })
+          toast.info('Already completed', {
+            description: 'This habit was already completed today.',
+          })
           return
         }
         throw new Error(error.error || 'Failed to complete habit')
@@ -235,98 +260,155 @@ export function HabitsApp({
 
       const data = await response.json()
 
-      // Update local state with new streak
+      // Validate response structure
+      if (!data || !data.habit) {
+        throw new Error('Invalid response from server')
+      }
+
+      // Update with server data (correct streak from server)
       setHabits((prevHabits) =>
-        prevHabits.map((habit) => {
-          if (habit.id === habitId) {
-            const today = new Date().toISOString().split('T')[0]
-            setHabitHistory((prev) => ({
-              ...prev,
-              [today]: 1.0, // Full completion when habit is completed
-            }))
-
-            const newXP = totalXP + habit.xpReward
-            const newLevel = calculateLevel(newXP)
-
-            setTotalXP(newXP)
-
-            if (newLevel > level) {
-              setLevel(newLevel)
-              setShowLevelUp(true)
-              setTimeout(() => setShowLevelUp(false), 3000)
-            }
-
-            return {
-              ...habit,
-              completedToday: true,
-              streak: data.habit.currentStreak,
-            }
-          }
-          return habit
-        })
+        prevHabits.map((h) =>
+          h.id === habitId ? { ...h, streak: data.habit.currentStreak } : h
+        )
       )
+
+      // Update stats with actual server data
+      if (
+        data.user &&
+        data.user.totalXP !== undefined &&
+        data.user.level !== undefined
+      ) {
+        updateStats({
+          totalXP: data.user.totalXP,
+          level: data.user.level,
+        })
+
+        // Check if leveled up
+        if (data.user.level > currentLevel) {
+          setShowLevelUp(true)
+          setTimeout(() => setShowLevelUp(false), 3000)
+          toast.success(`Level Up! You're now level ${data.user.level}! 🎉`)
+        }
+      }
     } catch (error) {
       console.error('Error completing habit:', error)
+
+      toast.error('Failed to complete habit', {
+        description:
+          'There was an error updating your habit. Please try again.',
+      })
+
+      // Revert optimistic update on error
+      setHabits((prevHabits) =>
+        prevHabits.map((h) => (h.id === habitId ? originalHabit : h))
+      )
+      setHabitHistory((prev) => ({
+        ...prev,
+        [today]: 0,
+      }))
+      updateStats({
+        totalXP: currentXP,
+        level: currentLevel,
+        completedToday: currentCompletedToday,
+        totalStreak: currentTotalStreak,
+      })
     }
   }
 
-  const toggleHabitOff = async (habitId: string) => {
-    // For now, just update local state
-    // In the future, you could create an endpoint to toggle off
-    setHabits((prevHabits) =>
-      prevHabits.map((habit) => {
-        if (habit.id === habitId) {
-          const today = new Date().toISOString().split('T')[0]
-          setHabitHistory((prev) => ({
-            ...prev,
-            [today]: 0,
-          }))
-
-          return {
-            ...habit,
-            completedToday: false,
-          }
-        }
-        return habit
-      })
-    )
-  }
-
-  const addCustomHabit = (habitData: {
+  const addCustomHabit = async (habitData: {
     name: string
     iconName: string // Changed from icon to iconName
     color: string
     xpReward: number
   }) => {
     const totalHabitsCount = habits.length
+    const userPlan = userData?.plan || 'FREE'
 
-    if (!isPremium && totalHabitsCount >= 3) {
+    // Check plan limits: FREE = 3 habits, PREMIUM = 20 habits
+    if (userPlan === 'FREE' && totalHabitsCount >= 3) {
       setShowSubscription(true)
       return
     }
 
-    const newHabit: Habit = {
-      color: habitData.color,
-      completedToday: false,
-      iconName: habitData.iconName, // Using iconName instead of icon
-      id: Date.now().toString(),
-      isCustom: true,
-      name: habitData.name,
-      streak: 0,
-      xpReward: habitData.xpReward,
+    if (userPlan === 'PREMIUM' && totalHabitsCount >= 20) {
+      alert(
+        'You have reached the maximum limit of 20 habits for Premium users.'
+      )
+      return
     }
 
-    setHabits((prevHabits) => [...prevHabits, newHabit])
+    try {
+      const response = await fetch('/api/habits', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(habitData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create habit')
+      }
+
+      const data = await response.json()
+
+      setHabits((prevHabits) => [...prevHabits, data.habit])
+      toast.success('Habit created!', {
+        description: `"${habitData.name}" has been added to your habits.`,
+      })
+    } catch (error) {
+      console.error('Error creating habit:', error)
+      toast.error('Failed to create habit', {
+        description:
+          'There was an error creating your habit. Please try again.',
+      })
+    }
   }
 
-  const deleteHabit = (habitId: string) => {
-    setHabits((prevHabits) =>
-      prevHabits.filter((habit) => habit.id !== habitId)
-    )
+  const deleteHabit = async () => {
+    if (!habitToDelete) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/habits/${habitToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete habit')
+      }
+
+      setHabits((prevHabits) =>
+        prevHabits.filter((habit) => habit.id !== habitToDelete.id)
+      )
+
+      toast.success('Habit deleted', {
+        description: `"${habitToDelete.name}" has been removed from your habits.`,
+      })
+
+      setHabitToDelete(null)
+      setEditMode(false)
+    } catch (error) {
+      console.error('Error deleting habit:', error)
+      toast.error('Failed to delete habit', {
+        description:
+          error instanceof Error
+            ? error.message
+            : 'There was an error deleting your habit. Please try again.',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const promptDeleteHabit = (habit: Habit) => {
+    setHabitToDelete(habit)
   }
 
   const handleSubscribe = () => {
-    setIsPremium(true)
+    // Subscription handled elsewhere - just close modal and refetch user data
+    setShowSubscription(false)
   }
 
   const completedToday = habits.filter((h) => h.completedToday).length
@@ -377,7 +459,9 @@ export function HabitsApp({
           <div>
             <h1 className="text-foreground flex items-center gap-2 text-2xl font-bold">
               Hello, {user.name}!
-              {isPremium && <Crown className="h-5 w-5 text-yellow-500" />}
+              {userData?.plan === 'PREMIUM' && (
+                <Crown className="h-5 w-5 text-yellow-500" />
+              )}
             </h1>
             <p className="text-muted-foreground text-sm">Build your habits</p>
           </div>
@@ -396,18 +480,18 @@ export function HabitsApp({
         </div>
 
         <UserStats
-          level={level}
-          totalXP={totalXP}
-          completedToday={completedToday}
-          totalHabits={totalHabits}
-          totalStreak={calculateTotalStreak()}
-          weeklyCompletion={calculateWeeklyCompletion()}
+          level={stats?.level || 1}
+          totalXP={stats?.totalXP || 0}
+          completedToday={stats?.completedToday || 0}
+          totalHabits={stats?.totalHabits || 0}
+          totalStreak={stats?.totalStreak || 0}
+          weeklyCompletion={stats?.weeklyCompletion || 0}
         />
 
         <LevelProgress
-          currentXP={getCurrentLevelXP(totalXP, level)}
-          xpForNextLevel={getXPForNextLevel(level)}
-          level={level}
+          currentXP={getCurrentLevelXP(stats?.totalXP || 0, stats?.level || 1)}
+          xpForNextLevel={getXPForNextLevel(stats?.level || 1)}
+          level={stats?.level || 1}
         />
 
         {showLevelUp && (
@@ -415,7 +499,7 @@ export function HabitsApp({
             <div className="bg-card animate-bounce rounded-2xl p-8 text-center">
               <div className="mb-4 text-6xl">🎉</div>
               <h2 className="text-primary mb-2 text-2xl font-bold">
-                Level {level}!
+                Level {stats?.level || 1}!
               </h2>
               <p className="text-muted-foreground">Keep it up, champion!</p>
             </div>
@@ -430,9 +514,9 @@ export function HabitsApp({
               Habits of today
             </h2>
             <div className="flex items-center gap-2">
-              {!isPremium && (
+              {userData && (
                 <span className="text-muted-foreground text-xs">
-                  {habits.length}/3
+                  {habits.length}/{userData.plan === 'PREMIUM' ? '20' : '3'}
                 </span>
               )}
               <Button
@@ -459,7 +543,7 @@ export function HabitsApp({
           </div>
 
           {habits.map((habit) => (
-            <div key={habit.id} className="relative">
+            <div key={habit.id} className="group relative">
               <HabitCard
                 habit={habit}
                 onComplete={() => completeHabit(habit.id)}
@@ -467,10 +551,10 @@ export function HabitsApp({
               />
               {editMode && habit.isCustom && (
                 <Button
-                  variant="destructive"
-                  size="sm"
-                  className="absolute top-2 right-2 z-10"
-                  onClick={() => deleteHabit(habit.id)}
+                  variant="ghost"
+                  size="icon"
+                  className="animate-in fade-in zoom-in absolute -top-2 -right-2 z-10 h-8 w-8 rounded-full border-2 border-red-200 bg-red-50 text-red-600 shadow-md transition-all duration-200 hover:border-red-300 hover:bg-red-100 hover:text-red-700 hover:shadow-lg dark:border-red-900 dark:bg-red-950/50 dark:text-red-400 dark:hover:border-red-800 dark:hover:bg-red-900/70 dark:hover:text-red-300"
+                  onClick={() => promptDeleteHabit(habit)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -508,6 +592,13 @@ export function HabitsApp({
           isOpen={showSubscription}
           onClose={() => setShowSubscription(false)}
           onSubscribe={handleSubscribe}
+        />
+        <DeleteHabitModal
+          isOpen={habitToDelete !== null}
+          onClose={() => setHabitToDelete(null)}
+          onConfirm={deleteHabit}
+          habitName={habitToDelete?.name || ''}
+          isDeleting={isDeleting}
         />
       </div>
     </div>

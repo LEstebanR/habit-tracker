@@ -35,7 +35,7 @@ interface AddHabitModalProps {
     iconName: string // Changed from icon to iconName
     color: string
     xpReward: number
-  }) => void
+  }) => void | Promise<void>
 }
 
 const iconOptions = [

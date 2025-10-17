@@ -18,6 +18,8 @@ model User {
   email         String         @unique
   name          String?
   image         String?        // avatar de Google si quieres
+  totalXP       Int            @default(0)
+  level         Int            @default(1)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -49,7 +51,7 @@ model HabitEntry {
   completed Boolean    @default(false)
 
   habitId   String
-  habit     Habit      @relation(fields: [habitId], references: [id])
+  habit     Habit      @relation(fields: [habitId], references: [id], onDelete: Cascade)
 
   @@unique([habitId, date]) // un registro por hábito/día
 }
